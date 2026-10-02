@@ -139,6 +139,9 @@ static double sh1762_sflength();
 static double sh1762_cvlength();
 #endif
 
+/*
+ * Public entry point. Start a new, independent recursion at level zero.
+ */
 #if defined(SISLNEEDPROTOTYPES)
 void
 sh1762 (SISLObject * po1, SISLObject * po2, double aepsge,
@@ -181,7 +184,8 @@ sh1762_impl (po1, po2, aepsge, pintdat, vedge, jstat, parent_level)
 *                 with UPDATE :
 *
 *
-* PURPOSE    : SISLObject - object intersection. Treat the inner of the
+* PURPOSE    : Internal recursive worker for SISLObject intersection.
+*              Treat the inner of the
 *              object.
 *
 *
@@ -190,6 +194,7 @@ sh1762_impl (po1, po2, aepsge, pintdat, vedge, jstat, parent_level)
 *              po2       - Pointer to second object
 *              aepsge    - Geometry resolution.
 *              vedge[2]  - Pointers to structure of edge-intersections.
+*              parent_level - Recursion level of the calling sh1762_impl.
 *              *jstat    - Flag
 *                          = 202 : Complicated point-surface intersection
 *                                  in 3D. Perform extra interception test.
@@ -204,7 +209,9 @@ sh1762_impl (po1, po2, aepsge, pintdat, vedge, jstat, parent_level)
 *                                         = 0      : no intersection
 *                                         < 0      : error
 *
-* METHOD     :
+* METHOD     : level is parent_level + 1. Recursive sh1762_impl calls pass
+*              level as their parent_level, while sh1761_impl calls preserve
+*              it until they enter sh1762_impl again.
 *
 *
 * REFERENCES :
@@ -221,7 +228,7 @@ sh1762_impl (po1, po2, aepsge, pintdat, vedge, jstat, parent_level)
 *              s1773      - Point/surface iteration.
 *              s1231      - Subdivide curve.
 *              s1711      - Subdivide surface.
-*              sh1761     - Object/object intersection.
+*              sh1761_impl - Object/object intersection.
 *              s1435      - Pick an edge curve from a surface.
 *              s1438      - Pick an end point from a curve.
 *              sh6idnpt    - New intpoint in intdat.
@@ -3376,6 +3383,9 @@ sh1762_s9div (po1, po2, aepsge, iobj, idiv, wob, vedge, pintdat, jstat,
 *		           = 3     : Subdivision in first and second
 *                                                parameter direction.
 *              vedge[]  - Intersection on edges.
+*              level    - Current sh1762 recursion level. Passed unchanged
+*                         to nested sh1761_impl and as parent_level to
+*                         nested sh1762_impl calls.
 *
 *
 * OUTPUT     : pintdat  - Intersection data.
@@ -4816,6 +4826,8 @@ sh1762_s9con (po1, po2, aepsge, pintdat, vedge, jstat, level)
 *              po2      - The second SISLObject to check.
 *              aepsge   - Geometrical resolution.
 *              vedge[]  - SISLEdge intersection.
+*              level    - Current sh1762 recursion level, passed to
+*                         sh1762_s9intercept.
 *              *jstat    - Flag
 *                          = 202 : Complicated point-surface intersection
 *                                  in 3D. Perform extra interception test.
@@ -5416,6 +5428,8 @@ sh1762_s9intercept (po1, po2, aepsge, inmbpt, vintpt, jstat, level)
  *              inmbpt   - Number of intersections found on the edges.
  *              vintpt   - The intersections at the edges.
  *                         Dimension of pointer array is inmbpt.
+ *              level    - Current sh1762 recursion level. It controls
+ *                         direction and classification decisions.
  *              *jstat    - Flag
 *                          = 202 : Complicated point-surface intersection
 *                                  in 3D. Perform extra interception test.

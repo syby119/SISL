@@ -51,6 +51,9 @@
 #include "sislP.h"
 
 
+/*
+ * Public entry point. Start a new, independent sh1762 recursion at level zero.
+ */
 #if defined(SISLNEEDPROTOTYPES)
 void sh1761_impl (SISLObject *, SISLObject *, double, SISLIntdat **, int *, int);
 void sh1762_impl (SISLObject *, SISLObject *, double, SISLIntdat **, SISLEdge *[], int *, int);
@@ -95,7 +98,8 @@ sh1761_impl (po1, po2, aepsge, pintdat, jstat, parent_level)
 *                 with <comment-sign> UPDATE :
 *
 *
-* PURPOSE    : Find all intersections between two objects (of type
+* PURPOSE    : Internal recursive worker that finds all intersections
+*              between two objects (of type
 *              point, curve or surface). In this rouine the outer
 *              edges/endpoints of the objects are treated.
 *
@@ -104,6 +108,7 @@ sh1761_impl (po1, po2, aepsge, pintdat, jstat, parent_level)
 * INPUT      : po1    - First object in the intersection.
 *              po2    - Second object in the intersection.
 *              aepsge - Geometry resolution.
+*              parent_level - Current sh1762 recursion level of the caller.
 *              *jstat    - Flag
 *                          = 202 : Complicated point-surface intersection
 *                                  in 3D. Perform extra interception test.
@@ -121,7 +126,10 @@ sh1761_impl (po1, po2, aepsge, pintdat, jstat, parent_level)
 *                                       < 0      : error
 *
 *
-* METHOD     : This function is computing point/point intersection
+* METHOD     : sh1761 does not increase the sh1762 recursion level.
+*              Recursive sh1761_impl calls preserve parent_level; calls to
+*              sh1762_impl pass it as the child's parent level.
+*              This function is computing point/point intersection
 *              otherwise it is computing edge/endpoint intersections
 *              by recurson on one end object and the other object,
 *              and futher calling a rutine for computing intersections
@@ -135,7 +143,7 @@ sh1761_impl (po1, po2, aepsge, pintdat, jstat, parent_level)
 *              s6dist     - Compute the distance beetween two point.
 *              s1435      - Pick edge curve from a surface.
 *              s1438      - Pick endpoint from a curve.
-*              sh1762      - Find the intersections in the inner of the objects.
+*              sh1762_impl - Find the intersections in the inner of the objects.
 *              sh1790      - Perform BOX test.
 *              sh6idnpt    - Put a new intpt to given intdat.
 *              sh6idput    - Put contence of one intdat in an other intdat.
