@@ -53,11 +53,17 @@
 #if defined(SISLNEEDPROTOTYPES)
 static void s1613bez_impl(SISLCurve *,int,double,double **,int *,int *,int);
 
+/*
+ * Public entry point. Start a new, independent recursion at level zero.
+ */
 void s1613bez(SISLCurve *pc,int idiv,double aepsge,double **gpar,int *jnpar,
 	      int *jstat)
 #else
 static void s1613bez_impl();
 
+/*
+ * Public entry point. Start a new, independent recursion at level zero.
+ */
 void s1613bez(pc,idiv,aepsge,gpar,jnpar,jstat)
      SISLCurve  *pc;
      int idiv;
@@ -85,14 +91,15 @@ static void s1613bez_impl(pc,idiv,aepsge,gpar,jnpar,jstat,parent_level)
 #endif
 /*
 *********************************************************************
-* 
-* PURPOSE    : To compute an aproximation of a Bezier curve with a 
+*
+* PURPOSE    : Internal recursive worker that computes an aproximation
+*              of a Bezier curve with a
 *              sequence of lines inside a tolerance of aepsge.
-* 
-* 
+*
 * INPUT      : pc    - Given spline curve.
 *              idiv  - Inital number into which to divide the curve.
 *              aepsge    - Tolerance.
+*              parent_level - Recursion level of the calling worker.
 *
 * 
 * OUTPUT     : gpar     - Array containing the parameter values of the points.
@@ -104,8 +111,9 @@ static void s1613bez_impl(pc,idiv,aepsge,gpar,jnpar,jstat,parent_level)
 *                          < 0 : error 
 * 
 * 
-* METHOD     :
-*              
+* METHOD     : current_level is parent_level + 1. The public entry starts
+*              with parent_level zero; recursive calls pass current_level.
+*              A level greater than 200 returns warning status 2.
 *
 * REFERENCES : 
 *              
@@ -113,7 +121,7 @@ static void s1613bez_impl(pc,idiv,aepsge,gpar,jnpar,jstat,parent_level)
 * USE        : 
 *
 *-
-* CALLS      : newknots, s1018, s6dline, newCurve, s1613bez,
+* CALLS      : newknots, s1018, s6dline, newCurve, s1613bez_impl,
 *              s6takeunion, freeCurve
 *              
 *
