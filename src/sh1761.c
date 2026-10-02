@@ -52,9 +52,15 @@
 
 
 #if defined(SISLNEEDPROTOTYPES)
+void sh1761_impl (SISLObject *, SISLObject *, double, SISLIntdat **, int *, int);
+void sh1762_impl (SISLObject *, SISLObject *, double, SISLIntdat **, SISLEdge *[], int *, int);
+
 void
 sh1761 (SISLObject * po1, SISLObject * po2, double aepsge, SISLIntdat ** pintdat, int *jstat)
 #else
+void sh1761_impl ();
+void sh1762_impl ();
+
 void
 sh1761 (po1, po2, aepsge, pintdat, jstat)
      SISLObject *po1;
@@ -62,6 +68,24 @@ sh1761 (po1, po2, aepsge, pintdat, jstat)
      double aepsge;
      SISLIntdat **pintdat;
      int *jstat;
+#endif
+{
+  sh1761_impl (po1, po2, aepsge, pintdat, jstat, 0);
+}
+
+#if defined(SISLNEEDPROTOTYPES)
+void
+sh1761_impl (SISLObject * po1, SISLObject * po2, double aepsge,
+             SISLIntdat ** pintdat, int *jstat, int parent_level)
+#else
+void
+sh1761_impl (po1, po2, aepsge, pintdat, jstat, parent_level)
+     SISLObject *po1;
+     SISLObject *po2;
+     double aepsge;
+     SISLIntdat **pintdat;
+     int *jstat;
+     int parent_level;
 #endif
 /*
 *********************************************************************
@@ -305,8 +329,9 @@ sh1761 (po1, po2, aepsge, pintdat, jstat)
 
 		    /* Recursiv computing of end intersection. */
 
-		    sh1761 (kj == 0 ? qo1->edg[ki] : qo2, kj == 0 ? qo2 : qo1->edg[ki],
-			    aepsge, &qintdat, &kstat);
+		    sh1761_impl (kj == 0 ? qo1->edg[ki] : qo2,
+				 kj == 0 ? qo2 : qo1->edg[ki], aepsge,
+				 &qintdat, &kstat, parent_level);
 		    if (kstat < 0)
 		      goto error;
 
@@ -370,9 +395,11 @@ sh1761 (po1, po2, aepsge, pintdat, jstat)
 		    /* Recursiv computing of edge intersection. */
 
 		    if (kj == 0)
-		      sh1761 (qo1->edg[ki], qo2, aepsge, &qintdat, &kstat);
+		      sh1761_impl (qo1->edg[ki], qo2, aepsge, &qintdat, &kstat,
+				   parent_level);
 		    else
-		      sh1761 (qo2, qo1->edg[ki], aepsge, &qintdat, &kstat);
+		      sh1761_impl (qo2, qo1->edg[ki], aepsge, &qintdat, &kstat,
+				   parent_level);
 		    if (kstat < 0)
 		      goto error;
 
@@ -445,7 +472,8 @@ sh1761 (po1, po2, aepsge, pintdat, jstat)
 	    goto error;
 
 	  kstat = (kxintercept) ? 202 : 0;
-	  sh1762 (po1_kreg, po2_kreg, aepsge, pintdat, qedge, &kstat);
+	  sh1762_impl (po1_kreg, po2_kreg, aepsge, pintdat, qedge, &kstat,
+		       parent_level);
 	  if (kstat < 0)
 	    goto error;
 	  else if (kstat)

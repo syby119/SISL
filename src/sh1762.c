@@ -59,27 +59,21 @@ extern int nmbsuccess;
 */
 
 /*
-* Level counter.
-* --------------
-*/
-
-static int xc = 0;
-static int xmax = 0;
-
-/*
 * Forward declarations.
 * ---------------------
 */
 
 #if defined(SISLNEEDPROTOTYPES)
+void sh1761_impl (SISLObject *, SISLObject *, double, SISLIntdat **, int *, int);
+void sh1762_impl (SISLObject *, SISLObject *, double, SISLIntdat **, SISLEdge *[], int *, int);
 static void sh1762_s9mic (SISLObject *, SISLObject *, SISLIntdat **, SISLEdge **[], int *);
 static void sh1762_s9num (SISLObject *, SISLObject *, int *, int *);
 static void sh1762_s9num2 (SISLObject *, SISLObject *, int, SISLEdge *[], int *, int *);
-static void sh1762_s9div (SISLObject *, SISLObject *, double, int, int, SISLObject *[], SISLEdge *[], SISLIntdat **, int *);
+static void sh1762_s9div (SISLObject *, SISLObject *, double, int, int, SISLObject *[], SISLEdge *[], SISLIntdat **, int *, int);
 static int sh1762_s9subdivpt (SISLObject *, SISLObject *, double, int, int, SISLEdge *[], SISLIntdat **, int *, SISLIntpt **, double[], int *);
 static void sh1762_s9update (SISLObject *, SISLObject *, double, SISLIntdat **, SISLEdge **[], int *);
-static void sh1762_s9con (SISLObject *, SISLObject *, double, SISLIntdat **, SISLEdge *[], int *);
-static void sh1762_s9intercept (SISLObject *, SISLObject *, double, int, SISLIntpt *[], int *);
+static void sh1762_s9con (SISLObject *, SISLObject *, double, SISLIntdat **, SISLEdge *[], int *, int);
+static void sh1762_s9intercept (SISLObject *, SISLObject *, double, int, SISLIntpt *[], int *, int);
 static void sh1762_s9coincide (SISLObject *, SISLObject *, double, int, SISLIntpt *[], int *);
 static void sh1762_s9toucharea (SISLObject *, SISLObject *, double, int, SISLIntpt *[], int *);
 /*static void sh1762_s9edgpoint (SISLEdge *[], SISLIntpt ***, int *, int *); */
@@ -113,6 +107,8 @@ static int sh1762_is_taboo2(SISLObject *, SISLObject *, SISLIntpt *, int, SISLIn
 static double sh1762_sflength(SISLSurf *, int, int *);
 static double sh1762_cvlength(SISLCurve *, int *);
 #else
+void sh1761_impl ();
+void sh1762_impl ();
 static void sh1762_s9mic ();
 static void sh1762_s9num ();
 static void sh1762_s9num2 ();
@@ -156,6 +152,26 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
      SISLIntdat **pintdat;
      SISLEdge *vedge[];
      int *jstat;
+#endif
+{
+  sh1762_impl (po1, po2, aepsge, pintdat, vedge, jstat, 0);
+}
+
+#if defined(SISLNEEDPROTOTYPES)
+void
+sh1762_impl (SISLObject * po1, SISLObject * po2, double aepsge,
+	     SISLIntdat ** pintdat, SISLEdge * vedge[], int *jstat,
+	     int parent_level)
+#else
+void
+sh1762_impl (po1, po2, aepsge, pintdat, vedge, jstat, parent_level)
+     SISLObject *po1;
+     SISLObject *po2;
+     double aepsge;
+     SISLIntdat **pintdat;
+     SISLEdge *vedge[];
+     int *jstat;
+     int parent_level;
 #endif
 /*
 *********************************************************************
@@ -235,6 +251,7 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
 */
 {
   int kpos = 0;			/* Position of error.                 */
+  int level = parent_level + 1;  /* Current sh1762 recursion level.    */
   int kstat = 0;		/* Local error status.                */
   int kdiv1 = 0;		/* Parameter direction of subdivsion. */
   int kdiv2 = 0;		/* Parameter direction of subdivsion. */
@@ -376,11 +393,6 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
      }
   }
 
-  xc++;
-  xmax = MAX (xmax, xc);
-  /*  printf("Max : %d \n",xc); */
-
-
   for (ki = 0; ki < 4; ki++)
     uob1[ki] = uob2[ki] = SISL_NULL;
 
@@ -512,7 +524,7 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
 	    /* Check for interval intersection. */
 
 	   kstat = (kxintercept) ? 202 : 0;
-	    sh1762_s9con (po1, po2, aepsge, pintdat, vedge, &kstat);
+	    sh1762_s9con (po1, po2, aepsge, pintdat, vedge, &kstat, level);
 	    if (kstat < 0)
 	       goto error;
 
@@ -666,7 +678,8 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
 
 		  /* Subdivide the po1 object. */
 
-		  sh1762_s9div (po1, po2, aepsge, 1, kdiv1, uob1, vedge, pintdat, &kstat);
+		  sh1762_s9div (po1, po2, aepsge, 1, kdiv1, uob1, vedge,
+				  pintdat, &kstat, level);
 		  if (kstat < 0)
 		    goto error;
 		  else if (kstat == 1)
@@ -711,7 +724,8 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
 
 		  /* Subdivide the po2 object. */
 
-		  sh1762_s9div (po1, po2, aepsge, 2, kdiv2, uob2, vedge, pintdat, &kstat);
+		  sh1762_s9div (po1, po2, aepsge, 2, kdiv2, uob2, vedge,
+				  pintdat, &kstat, level);
 		  if (kstat < 0)
 		    goto error;
 		  else if (kstat == 1)
@@ -767,7 +781,8 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
 
 		    at_bottom = FALSE;
 		    kstat = (kxintercept) ? 202 : 0;
-		    sh1762 (po1, uob2[ki], aepsge, pintdat, uedge, &kstat);
+		    sh1762_impl (po1, uob2[ki], aepsge, pintdat, uedge, &kstat,
+				 level);
 		    if (kstat < 0)
 		      goto error;
 		    else
@@ -800,7 +815,8 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
 
 		    at_bottom = FALSE;
 		    kstat = (kxintercept) ? 202 : 0;
-		    sh1762 (uob1[ki], po2, aepsge, pintdat, uedge, &kstat);
+		    sh1762_impl (uob1[ki], po2, aepsge, pintdat, uedge, &kstat,
+				 level);
 		    if (kstat < 0)
 		      goto error;
 		    else
@@ -833,7 +849,8 @@ sh1762 (po1, po2, aepsge, pintdat, vedge, jstat)
 
 		      at_bottom = FALSE;
 		      kstat = (kxintercept) ? 202 : 0;
-		      sh1762 (uob1[ki1], uob2[ki2], aepsge, pintdat, uedge, &kstat);
+		      sh1762_impl (uob1[ki1], uob2[ki2], aepsge, pintdat, uedge,
+				   &kstat, level);
 		      if (kstat < 0)
 			goto error;
 		      else
@@ -953,8 +970,6 @@ out:
       if (uob2[ki] != SISL_NULL)
 	freeObject (uob2[ki]);
     }
-  xc--;
-
 }
 
 #if defined(SISLNEEDPROTOTYPES)
@@ -3322,11 +3337,12 @@ out:
 static void
 sh1762_s9div (SISLObject * po1, SISLObject * po2, double aepsge,
 	      int iobj, int idiv, SISLObject * wob[], SISLEdge * vedge[],
-	      SISLIntdat ** pintdat, int *jstat)
+	      SISLIntdat ** pintdat, int *jstat, int level)
 
 #else
 static void
-sh1762_s9div (po1, po2, aepsge, iobj, idiv, wob, vedge, pintdat, jstat)
+sh1762_s9div (po1, po2, aepsge, iobj, idiv, wob, vedge, pintdat, jstat,
+	      level)
      SISLObject *po1;
      SISLObject *po2;
      double aepsge;
@@ -3336,6 +3352,7 @@ sh1762_s9div (po1, po2, aepsge, iobj, idiv, wob, vedge, pintdat, jstat)
      SISLEdge *vedge[];
      SISLIntdat **pintdat;
      int *jstat;
+     int level;
 #endif
 /*
 *********************************************************************
@@ -3508,8 +3525,9 @@ sh1762_s9div (po1, po2, aepsge, iobj, idiv, wob, vedge, pintdat, jstat)
 
 	  qso->o1 = qso;
 
-	  sh1762 ((iobj == 1 ? qso : po1), (iobj == 1 ? po2 : qso), aepsge,
-		  &qintdat, uedge, &kstat);
+	  sh1762_impl ((iobj == 1 ? qso : po1),
+		       (iobj == 1 ? po2 : qso), aepsge, &qintdat, uedge,
+		       &kstat, level);
 	  if (kstat < 0)
 	    goto error;
 
@@ -3520,8 +3538,9 @@ sh1762_s9div (po1, po2, aepsge, iobj, idiv, wob, vedge, pintdat, jstat)
 	}
       else
 	{
-	  sh1761 ((iobj == 1 ? qso : po1), (iobj == 1 ? po2 : qso), aepsge,
-		  &qintdat, &kstat);
+	  sh1761_impl ((iobj == 1 ? qso : po1),
+		       (iobj == 1 ? po2 : qso), aepsge, &qintdat, &kstat,
+		       level);
 	  if (kstat < 0)
 	    goto error;
 	}
@@ -3926,8 +3945,9 @@ sh1762_s9div (po1, po2, aepsge, iobj, idiv, wob, vedge, pintdat, jstat)
 
 	  /* Examine if the subdividing curve intersect the second object. */
 
-	  sh1762 ((iobj == 1 ? qso : po1), (iobj == 1 ? po2 : qso), aepsge,
-		  &qintdat, uedge, &kstat);
+	  sh1762_impl ((iobj == 1 ? qso : po1),
+		       (iobj == 1 ? po2 : qso), aepsge, &qintdat, uedge,
+		       &kstat, level);
 	  if (kstat < 0)
 	    goto error;
 
@@ -4768,16 +4788,17 @@ out:if (up != SISL_NULL)
 #if defined(SISLNEEDPROTOTYPES)
 static void
 sh1762_s9con (SISLObject * po1, SISLObject * po2, double aepsge,
-	      SISLIntdat ** pintdat, SISLEdge * vedge[], int *jstat)
+	      SISLIntdat ** pintdat, SISLEdge * vedge[], int *jstat, int level)
 #else
 static void
-sh1762_s9con (po1, po2, aepsge, pintdat, vedge, jstat)
+sh1762_s9con (po1, po2, aepsge, pintdat, vedge, jstat, level)
      SISLObject *po1;
      SISLObject *po2;
      double aepsge;
      SISLIntdat **pintdat;
      SISLEdge *vedge[];
      int *jstat;
+     int level;
 #endif
 /*
 *********************************************************************
@@ -5103,7 +5124,7 @@ sh1762_s9con (po1, po2, aepsge, pintdat, vedge, jstat)
              improved box tests.  */
 
 	  kstat = (kxintercept) ? 202 : 0;
-	  sh1762_s9intercept (po1, po2, aepsge, knum, up, &kstat);
+	  sh1762_s9intercept (po1, po2, aepsge, knum, up, &kstat, level);
 	  if (kstat < 0)
 	    goto error;
 
@@ -5366,16 +5387,17 @@ out:
 #if defined(SISLNEEDPROTOTYPES)
 static void
 sh1762_s9intercept (SISLObject * po1, SISLObject * po2, double aepsge,
-		    int inmbpt, SISLIntpt * vintpt[], int *jstat)
+		    int inmbpt, SISLIntpt * vintpt[], int *jstat, int level)
 #else
 static void
-sh1762_s9intercept (po1, po2, aepsge, inmbpt, vintpt, jstat)
+sh1762_s9intercept (po1, po2, aepsge, inmbpt, vintpt, jstat, level)
      SISLObject *po1;
      SISLObject *po2;
      double aepsge;
      int inmbpt;
      SISLIntpt *vintpt[];
      int *jstat;
+     int level;
 #endif
  /*
  *********************************************************************
@@ -5478,7 +5500,7 @@ sh1762_s9intercept (po1, po2, aepsge, inmbpt, vintpt, jstat)
        {
 	  /* No intersections at the edges.  */
 
-	  if (xc % 2 == 0)
+	  if (level % 2 == 0)
 	  {
 	     sh1839 (po1, po2, aepsge, &kstat);
 	     if (kstat < 0)
@@ -5494,7 +5516,7 @@ sh1762_s9intercept (po1, po2, aepsge, inmbpt, vintpt, jstat)
 
 	  if (kstat == 1)
 	  {
-	     if (xc % 2 == 0)
+	     if (level % 2 == 0)
 	     {
 		sh6findsplit(po1->s1, po2->s1, aepsge, &kstat);
 		if (kstat < 0) goto error;
@@ -5634,7 +5656,7 @@ sh1762_s9intercept (po1, po2, aepsge, inmbpt, vintpt, jstat)
        isbez2 = (po2->s1->ik1 == po2->s1->in1 && po2->s1->ik2 == po2->s1->in2);
        if (isbez1 && isbez2)
 	 {
-	   s6testimpl(po1->s1, po2->s1, (xc%2==0), 
+	   s6testimpl(po1->s1, po2->s1, (level%2==0),
 		      vintpt, inmbpt, aepsge, &kstat);
 	   if (kstat < 0)
 	     goto error;
@@ -5962,7 +5984,7 @@ sh1762_s9intercept (po1, po2, aepsge, inmbpt, vintpt, jstat)
 						   is two curves and no intersection point. */
 	/* Try to separate the objects by a sphere. */
 
-	   if (xc % 2 == 0)
+	   if (level % 2 == 0)
 	   {
 	      /* nmb_sep++; */
 	      sh6sepcrv(po1->c1, po2->c1, aepsge, scentre, &trad, &kstat);
@@ -6072,7 +6094,7 @@ sh1762_s9intercept (po1, po2, aepsge, inmbpt, vintpt, jstat)
   else if (((po1->iobj == SISLSURFACE && po2->iobj == SISLPOINT &&
 	   po2->p1->idim == 3) ||
 	   (po2->iobj == SISLSURFACE && po1->iobj == SISLPOINT &&
-	   po1->p1->idim == 3)) && kxintercept && xc > 7 && xc % 2 == 0)
+	   po1->p1->idim == 3)) && kxintercept && level > 7 && level % 2 == 0)
   {
     if (po1->iobj == SISLSURFACE) 
       {
