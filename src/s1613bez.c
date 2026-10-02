@@ -51,9 +51,13 @@
 #include "sislP.h"
 
 #if defined(SISLNEEDPROTOTYPES)
+static void s1613bez_impl(SISLCurve *,int,double,double **,int *,int *,int);
+
 void s1613bez(SISLCurve *pc,int idiv,double aepsge,double **gpar,int *jnpar,
 	      int *jstat)
 #else
+static void s1613bez_impl();
+
 void s1613bez(pc,idiv,aepsge,gpar,jnpar,jstat)
      SISLCurve  *pc;
      int idiv;
@@ -61,6 +65,23 @@ void s1613bez(pc,idiv,aepsge,gpar,jnpar,jstat)
      double **gpar;
      int    *jnpar;
      int    *jstat;
+#endif
+{
+   s1613bez_impl(pc,idiv,aepsge,gpar,jnpar,jstat,0);
+}
+
+#if defined(SISLNEEDPROTOTYPES)
+static void s1613bez_impl(SISLCurve *pc,int idiv,double aepsge,
+			  double **gpar,int *jnpar,int *jstat,int parent_level)
+#else
+static void s1613bez_impl(pc,idiv,aepsge,gpar,jnpar,jstat,parent_level)
+     SISLCurve  *pc;
+     int idiv;
+     double aepsge;
+     double **gpar;
+     int    *jnpar;
+     int    *jstat;
+     int parent_level;
 #endif
 /*
 *********************************************************************
@@ -101,7 +122,7 @@ void s1613bez(pc,idiv,aepsge,gpar,jnpar,jstat)
 *********************************************************************
 */
 {
-   static int klevel = 0;  /* Level of recursion.                    */
+   int current_level = parent_level + 1;  /* Current recursion level.  */
    int kstat = 0;        /* Local status varaible.                   */
    int ki;               /* Counter.                                 */
    int kord = pc->ik;    /* Order of curve.                          */
@@ -127,8 +148,7 @@ void s1613bez(pc,idiv,aepsge,gpar,jnpar,jstat)
 
    /* Check level of recursion.  */
    
-   klevel++;
-   if (klevel > 200)
+   if (current_level > 200)
    {
       *jstat = 2;
       goto out;
@@ -179,7 +199,8 @@ void s1613bez(pc,idiv,aepsge,gpar,jnpar,jstat)
 	 
 	 /* Linearize.  */
 	 
-	 s1613bez(qbez,kdiv,aepsge,&sparout,&kparout,&kstat);
+	 s1613bez_impl(qbez,kdiv,aepsge,&sparout,&kparout,&kstat,
+		       current_level);
 	 if (kstat < 0) goto error;
 	 
 	 if (kstat == 2)
@@ -238,10 +259,6 @@ void s1613bez(pc,idiv,aepsge,gpar,jnpar,jstat)
    goto out;
    
    out:
-      /* Reduce level parameter.  */
-      
-      klevel--;
-   
       /* Free scratch used for local arrays.  */
       
       if (spar2 != SISL_NULL) freearray(spar2);
